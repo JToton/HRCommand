@@ -34,7 +34,7 @@ CREATE TABLE employee (
 );
 
 -- *Call the seed.sql file to add mock data into the database. --
---\i seed.sql
+\i seed.sql
 
 -- *Query to retrieve employee name, department name, and role. --
 SELECT 
