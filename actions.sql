@@ -1,4 +1,4 @@
--- viewAllDepartments
+-- *viewAllDepartments.
 SELECT * FROM department;
 
 -- Mock Data:
@@ -64,3 +64,14 @@ UPDATE employee SET role_id = $1 WHERE id = $2;
 
 -- Mock Data:
 UPDATE employee SET role_id = 2 WHERE id = 4;
+
+-- *Query to retrieve employee name, department name, and role. --
+SELECT 
+  employee.first_name, 
+  employee.last_name,
+  department.department_name,
+  role.title
+FROM 
+  employee
+  JOIN role ON employee.role_id = role.id
+  JOIN department ON role.department_id = department.id;

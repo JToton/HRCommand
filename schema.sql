@@ -35,14 +35,3 @@ CREATE TABLE employee (
 
 -- *Call the seed.sql file to add mock data into the database. --
 \i seed.sql
-
--- *Query to retrieve employee name, department name, and role. --
-SELECT 
-  employee.first_name, 
-  employee.last_name,
-  department.department_name,
-  role.title
-FROM 
-  employee
-  JOIN role ON employee.role_id = role.id
-  JOIN department ON role.department_id = department.id;

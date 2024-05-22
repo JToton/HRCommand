@@ -2,6 +2,7 @@ const inquirer = require("inquirer");
 const { Client } = require("pg");
 
 // Create a new PostgreSQL client
+// .env
 const client = new Client({
   user: "postgres",
   host: "localhost",
@@ -36,21 +37,27 @@ async function promptUser() {
       break;
     case "View all roles":
       console.log("You have selected to view all roles.");
+      await viewAllRoles();
       break;
     case "View all employees":
       console.log("You have selected to view all employees.");
+      await viewAllEmployees();
       break;
     case "Add a department":
       console.log("You have selected to add a department.");
+      await addDepartment();
       break;
     case "Add a role":
       console.log("You have selected to add a role.");
+      await addRole();
       break;
     case "Add an employee":
       console.log("You have selected to add an employee.");
+      await addEmployee();
       break;
     case "Update an employee role":
       console.log("You have selected to update an employee role.");
+      await updateEmployeeRole();
       break;
     case "Exit":
       client.end(); // Properly end the client connection
@@ -67,6 +74,180 @@ async function viewAllDepartments() {
     console.table(result.rows);
   } catch (err) {
     console.error("Error viewing departments:", err);
+  }
+}
+
+// Function to view all roles
+async function viewAllRoles() {
+  try {
+    const result = await client.query(`
+      SELECT role.id, role.title, department.department_name, role.salary
+      FROM role
+      INNER JOIN department ON role.department_id = department.id
+    `);
+    console.table(result.rows);
+  } catch (err) {
+    console.error("Error viewing roles:", err);
+  }
+}
+
+// Function to view all employees
+async function viewAllEmployees() {
+  try {
+    const result = await client.query(`
+      SELECT e.id, e.first_name, e.last_name, r.title, d.department_name, r.salary, m.first_name AS manager_first_name, m.last_name AS manager_last_name
+      FROM employee e
+      INNER JOIN role r ON e.role_id = r.id
+      INNER JOIN department d ON r.department_id = d.id
+      LEFT JOIN employee m ON e.manager_id = m.id
+    `);
+    console.table(result.rows);
+  } catch (err) {
+    console.error("Error viewing employees:", err);
+  }
+}
+
+// Function to add a department
+async function addDepartment() {
+  try {
+    const { departmentName } = await inquirer.prompt([
+      {
+        type: "input",
+        name: "departmentName",
+        message: "Enter the name of the department:",
+      },
+    ]);
+
+    await client.query("INSERT INTO department (department_name) VALUES ($1)", [
+      departmentName,
+    ]);
+    console.log("Department added successfully!");
+  } catch (err) {
+    console.error("Error adding department:", err);
+  }
+}
+
+// Function to add a role
+async function addRole() {
+  try {
+    const departments = await client.query("SELECT * FROM department");
+
+    const { title, salary, departmentId } = await inquirer.prompt([
+      {
+        type: "input",
+        name: "title",
+        message: "Enter the title of the role:",
+      },
+      {
+        type: "input",
+        name: "salary",
+        message: "Enter the salary for the role:",
+      },
+      {
+        type: "list",
+        name: "departmentId",
+        message: "Select the department for the role:",
+        choices: departments.rows.map((department) => ({
+          name: department.department_name,
+          value: department.id,
+        })),
+      },
+    ]);
+
+    await client.query(
+      "INSERT INTO role (title, salary, department_id) VALUES ($1, $2, $3)",
+      [title, salary, departmentId]
+    );
+    console.log("Role added successfully!");
+  } catch (err) {
+    console.error("Error adding role:", err);
+  }
+}
+
+// Function to add an employee
+async function addEmployee() {
+  try {
+    const roles = await client.query("SELECT * FROM role");
+    const managers = await client.query("SELECT * FROM employee");
+
+    const { firstName, lastName, roleId, managerId } = await inquirer.prompt([
+      {
+        type: "input",
+        name: "firstName",
+        message: "Enter the employee's first name:",
+      },
+      {
+        type: "input",
+        name: "lastName",
+        message: "Enter the employee's last name:",
+      },
+      {
+        type: "list",
+        name: "roleId",
+        message: "Select the employee's role:",
+        choices: roles.rows.map((role) => ({
+          name: role.title,
+          value: role.id,
+        })),
+      },
+      {
+        type: "list",
+        name: "managerId",
+        message: "Select the employee's manager:",
+        choices: [
+          { name: "None", value: null },
+          ...managers.rows.map((manager) => ({
+            name: `${manager.first_name} ${manager.last_name}`,
+            value: manager.id,
+          })),
+        ],
+      },
+    ]);
+
+    await client.query(
+      "INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ($1, $2, $3, $4)",
+      [firstName, lastName, roleId, managerId]
+    );
+    console.log("Employee added successfully!");
+  } catch (err) {
+    console.error("Error adding employee:", err);
+  }
+}
+
+// Function to update an employee's role
+async function updateEmployeeRole() {
+  try {
+    const employees = await client.query("SELECT * FROM employee");
+    const roles = await client.query("SELECT * FROM role");
+
+    const { employeeId, roleId } = await inquirer.prompt([
+      {
+        type: "list",
+        name: "employeeId",
+        message: "Select the employee to update:",
+        choices: employees.rows.map((employee) => ({
+          name: `${employee.first_name} ${employee.last_name}`,
+          value: employee.id,
+        })),
+      },
+      {
+        type: "list",
+        name: "roleId",
+        message: "Select the new role for the employee:",
+        choices: roles.rows.map((role) => ({
+          name: role.title,
+          value: role.id,
+        })),
+      },
+    ]);
+
+    await client.query("UPDATE employee SET role_id = $1 WHERE id = $2", [
+      roleId,
+      employeeId,
+    ]);
+    console.log("Employee role updated successfully!");
+  } catch (err) {
+    console.error("Error updating employee role:", err);
   }
 }
 
