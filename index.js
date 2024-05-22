@@ -7,7 +7,7 @@ const client = new Client({
   user: "postgres",
   host: "localhost",
   database: "content_manager_db",
-  password: "Gamer93!",
+  password: "password",
   port: 5432, // Default PostgreSQL port
 });
 
@@ -70,8 +70,10 @@ async function promptUser() {
 // Function to view all departments
 async function viewAllDepartments() {
   try {
-    const result = await client.query("SELECT * FROM department");
-    console.table(result.rows);
+    const result = await client.query(
+      "SELECT id, department_name AS department FROM department"
+    );
+    console.table(result.rows, ["id", "department"]);
   } catch (err) {
     console.error("Error viewing departments:", err);
   }
@@ -81,7 +83,7 @@ async function viewAllDepartments() {
 async function viewAllRoles() {
   try {
     const result = await client.query(`
-      SELECT role.id, role.title, department.department_name, role.salary
+      SELECT role.id, role.title AS role, department.department_name AS department, role.salary
       FROM role
       INNER JOIN department ON role.department_id = department.id
     `);
@@ -95,7 +97,7 @@ async function viewAllRoles() {
 async function viewAllEmployees() {
   try {
     const result = await client.query(`
-      SELECT e.id, e.first_name, e.last_name, r.title, d.department_name, r.salary, m.first_name AS manager_first_name, m.last_name AS manager_last_name
+      SELECT e.id,  CONCAT(e.first_name, ' ', e.last_name) AS employee, r.title AS role, d.department_name AS Department, r.salary, CONCAT(m.first_name, ' ', m.last_name) AS manager
       FROM employee e
       INNER JOIN role r ON e.role_id = r.id
       INNER JOIN department d ON r.department_id = d.id
